@@ -4,6 +4,11 @@ import time
 from datetime import datetime, timedelta
 import os
 
+# Logging function
+def log(message):
+    with open("bot_log.txt", "a") as f:
+        f.write(f"{datetime.now()}: {message}\n")
+
 # X API Credentials
 API_KEY = "bClwKkhHXJAtbCvQHCwVEN4zf"
 API_SECRET = "QudRQAVqrzxPHnAwmn1D4NXfn5XRfgrHZsQsZGNUHskx1fIuei"
@@ -57,12 +62,14 @@ def daily_post(counter):
     item = products[counter % 15]
     tags = random.sample(hashtags, 2)
     tweet = f"{item['title']}\n{item['amazon']} {item['youtube']}\n{tags[0]} {tags[1]}"
+    log(f"About to post daily: {tweet}")
     client.create_tweet(text=tweet)
     print(f"Posted: {tweet}")
 
 # Bi-weekly retro site post
 def biweekly_retro_post():
     tweet = f"https://mpro25.github.io/retro_site_latest/ {random.choice(all_hashtags)}"
+    log(f"About to post retro: {tweet}")
     client.create_tweet(text=tweet)
     print(f"Posted retro site: {tweet}")
 
@@ -70,6 +77,7 @@ def biweekly_retro_post():
 def triweekly_rumble_post(last_rumble_time):
     tweet = "https://rumble.com/c/c-7682877\n" + " ".join(all_hashtags)
     if (now - last_rumble_time).total_seconds() > 86400:  # 24-hour cooldown
+        log(f"About to post Rumble: {tweet}")
         client.create_tweet(text=tweet)
         print(f"Posted Rumble: {tweet}")
         return now
@@ -83,6 +91,7 @@ last_rumble_time = datetime.now() - timedelta(days=1)
 
 while True:
     now = datetime.now() - timedelta(hours=5)  # EST (UTC-5)
+    log("Bot is running...")
 
     # Daily posts at 10:27 AM and 7:17 PM EST
     if now.hour == 10 and now.minute == 27:
@@ -106,6 +115,23 @@ while True:
             biweekly_retro_post()
             last_biweekly[1] = now
             time.sleep(60)
+
+    # Tri-weekly Rumble posts at 2:36 PM EST (3x/week)
+    if now.hour == 14 and now.minute == 36:
+        if (now - last_triweekly[0]).days >= 2 and random.random() < 0.5:  # ~3x/week
+            last_rumble_time = triweekly_rumble_post(last_rumble_time)
+            last_triweekly[0] = now
+            time.sleep(60)
+        if (now - last_triweekly[1]).days >= 2 and random.random() < 0.5:
+            last_rumble_time = triweekly_rumble_post(last_rumble_time)
+            last_triweekly[1] = now
+            time.sleep(60)
+        if (now - last_triweekly[2]).days >= 2 and random.random() < 0.5:
+            last_rumble_time = triweekly_rumble_post(last_rumble_time)
+            last_triweekly[2] = now
+            time.sleep(60)
+
+    time.sleep(10)  # Check every 10 seconds
 
     # Tri-weekly Rumble posts at 2:36 PM EST (3x/week)
     if now.hour == 14 and now.minute == 36:
