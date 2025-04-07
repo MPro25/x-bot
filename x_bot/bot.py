@@ -39,9 +39,7 @@ products = [
 
 # Hashtags for posts
 hashtags = ["#HealthyLifestyle", "#Wellness", "#HealthyLiving", "#HealthAndWellness", "#FitAndHealthy", "#MindBody", "#SelfCare", "#Nutrition"]
-
-# Comment accounts
-comment_accounts = ["menshealthmag", "womenshealthmag", "health_com_", "jamesclear", "who"]
+all_hashtags = ["#HealthyLifestyle", "#Wellness", "#HealthyLiving", "#CleanEating", "#HealthAndWellness", "#FitAndHealthy", "#MindBody", "#HealthyHabits", "#SelfCare", "#Nutrition"]
 
 # Load or initialize counter
 def load_counter():
@@ -62,25 +60,26 @@ def daily_post(counter):
     client.create_tweet(text=tweet)
     print(f"Posted: {tweet}")
 
-# Daily comment function
-def daily_comment():
-    account = random.choice(comment_accounts)
-    user = client.get_user(username=account)
-    if user.data:
-        tweets = client.get_users_tweets(id=user.data.id, max_results=10, exclude=["replies", "retweets"])
-        if tweets.data:
-            tweet_id = random.choice(tweets.data).id
-            rewrites = [
-                "Hey, moving’s no biggie—gym, woods, or couch, just go! Cheap gear, tons of fun moves. Get it done! https://mpro25.github.io/retro_site_latest/",
-                "Active? Easy peasy—hit the gym, roam, or chill. Affordable gear, endless workouts. Keep it rockin’! https://mpro25.github.io/retro_site_latest/",
-                "Stay fit, no fuss! Gym, nature, or home—cheap gear’s got a million moves. Let’s roll! https://mpro25.github.io/retro_site_latest/"
-            ]
-            comment = random.choice(rewrites)
-            client.create_tweet(text=comment, in_reply_to_tweet_id=tweet_id)
-            print(f"Commented on @{account}: {comment}")
+# Bi-weekly retro site post
+def biweekly_retro_post():
+    tweet = f"https://mpro25.github.io/retro_site_latest/ {random.choice(all_hashtags)}"
+    client.create_tweet(text=tweet)
+    print(f"Posted retro site: {tweet}")
+
+# Tri-weekly Rumble post with duplicate check
+def triweekly_rumble_post(last_rumble_time):
+    tweet = "https://rumble.com/c/c-7682877\n" + " ".join(all_hashtags)
+    if (now - last_rumble_time).total_seconds() > 86400:  # 24-hour cooldown
+        client.create_tweet(text=tweet)
+        print(f"Posted Rumble: {tweet}")
+        return now
+    return last_rumble_time
 
 # Main loop
 counter = load_counter()
+last_biweekly = [datetime.now() - timedelta(days=4), datetime.now() - timedelta(days=4)]
+last_triweekly = [datetime.now() - timedelta(days=3), datetime.now() - timedelta(days=2), datetime.now() - timedelta(days=1)]
+last_rumble_time = datetime.now() - timedelta(days=1)
 
 while True:
     now = datetime.now() - timedelta(hours=5)  # EST (UTC-5)
@@ -97,12 +96,30 @@ while True:
         save_counter(counter)
         time.sleep(60)
 
-    # Daily comments at 11:27 AM and 8:17 PM EST
-    if now.hour == 11 and now.minute == 27:
-        daily_comment()
-        time.sleep(60)
-    elif now.hour == 20 and now.minute == 17:
-        daily_comment()
-        time.sleep(60)
+    # Bi-weekly retro site posts at 11:22 AM EST (2x/week)
+    if now.hour == 11 and now.minute == 22:
+        if (now - last_biweekly[0]).days >= 3 and random.random() < 0.3:  # ~2x/week
+            biweekly_retro_post()
+            last_biweekly[0] = now
+            time.sleep(60)
+        if (now - last_biweekly[1]).days >= 3 and random.random() < 0.3:
+            biweekly_retro_post()
+            last_biweekly[1] = now
+            time.sleep(60)
+
+    # Tri-weekly Rumble posts at 2:36 PM EST (3x/week)
+    if now.hour == 14 and now.minute == 36:
+        if (now - last_triweekly[0]).days >= 2 and random.random() < 0.5:  # ~3x/week
+            last_rumble_time = triweekly_rumble_post(last_rumble_time)
+            last_triweekly[0] = now
+            time.sleep(60)
+        if (now - last_triweekly[1]).days >= 2 and random.random() < 0.5:
+            last_rumble_time = triweekly_rumble_post(last_rumble_time)
+            last_triweekly[1] = now
+            time.sleep(60)
+        if (now - last_triweekly[2]).days >= 2 and random.random() < 0.5:
+            last_rumble_time = triweekly_rumble_post(last_rumble_time)
+            last_triweekly[2] = now
+            time.sleep(60)
 
     time.sleep(10)  # Check every 10 seconds
